@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project Specific Data & Databases
+database/*.duckdb
+database/*.duckdb.wal
+data/mcap_cache.json
+data/equities_master.json
+data/universes/*.csv
+
+# Secrets and Credentials
+.env
+token.json
+secrets/
+
+# Scratch & Temporary files
+scratch_*.py
+*.html
+!src/api/templates/*.html

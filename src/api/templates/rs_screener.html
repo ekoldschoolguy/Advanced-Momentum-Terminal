@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RS Screener — AMT</title>
+    <meta name="description" content="Cross-sectional Relative Strength screener for NSE equities with multi-timeframe RS rankings.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0f1318;
+            --bg-elevated: #151a21;
+            --bg-panel: #171d25;
+            --surface: rgba(255, 255, 255, 0.035);
+            --surface-hover: rgba(255, 255, 255, 0.055);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.12);
+            --text-primary: #E8ECF4;
+            --text-secondary: #9BA4B5;
+            --text-muted: #6B7588;
+            --accent-cyan: #38BDF8;
+            --accent-teal: #2DD4BF;
+            --accent-green: #34D399;
+            --accent-red: #FB7185;
+            --accent-blue: #3B82F6;
+            --accent-amber: #FBBF24;
+            --accent-violet: #A78BFA;
+            --row-hover: rgba(255, 255, 255, 0.025);
+            --row-alt: rgba(255, 255, 255, 0.012);
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ─── Navigation Bar ─── */
+        .app-nav {
+            background: rgba(6, 9, 15, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            height: 48px;
+            gap: 4px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .app-nav .brand {
+            font-size: 15px;
+            font-weight: 800;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            margin-right: 14px;
+            white-space: nowrap;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-divider {
+            width: 1px;
+            height: 18px;
+            background: var(--border);
+            margin: 0 6px;
+        }
+        .app-nav a.nav-link {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .app-nav a.nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .app-nav a.nav-link.active {
+            color: white;
+            background: rgba(56, 189, 248, 0.12);
+            font-weight: 600;
+        }
+        .app-nav .nav-spacer { flex: 1; }
+        .app-nav .home-btn {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .app-nav .home-btn:hover {
+            color: white;
+            border-color: var(--border-hover);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* ─── Control Header ─── */
+        header {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+        select, input[type="text"], input[type="number"] {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: var(--font);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        select:focus, input:focus {
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.08);
+        }
+
+        button#scan-btn {
+            background: linear-gradient(135deg, #0EA5E9, #3B82F6);
+            color: white;
+            border: none;
+            padding: 7px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: var(--font);
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s;
+            margin-top: 14px;
+            letter-spacing: 0.2px;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+        }
+        button#scan-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(14, 165, 233, 0.3);
+        }
+        button#scan-btn:active {
+            transform: translateY(0);
+        }
+
+        .header-spacer { flex: 1; }
+
+        .search-box {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 7px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            font-family: var(--font);
+            width: 220px;
+            transition: all 0.2s;
+        }
+        .search-box:focus {
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.06);
+            outline: none;
+        }
+        .search-box::placeholder { color: var(--text-muted); }
+
+        /* ─── MTF Summary Panel ─── */
+        .mtf-summary-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px 20px 0 20px;
+            flex-shrink: 0;
+            background-color: var(--bg-base);
+        }
+        .mtf-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: border-color 0.2s;
+        }
+        .mtf-card:hover { border-color: var(--border-hover); }
+        .mtf-card-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+        .mtf-card-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            font-family: var(--font-mono);
+        }
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+
+        /* ─── Screener Table ─── */
+        .screener-container {
+            flex: 1;
+            overflow: auto;
+        }
+        .screener-container::-webkit-scrollbar { width: 6px; height: 6px; }
+        .screener-container::-webkit-scrollbar-track { background: transparent; }
+        .screener-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 10px; }
+        .screener-container::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+        .screener-container::-webkit-scrollbar-corner { background: transparent; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        th {
+            background: var(--bg-panel);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: color 0.15s;
+        }
+        th::after {
+            font-size: 8px;
+            margin-left: 3px;
+            opacity: 0.7;
+        }
+        th:hover { color: var(--text-primary); }
+        th.sort-asc::after { content: ' ▲'; color: var(--accent-cyan); }
+        th.sort-desc::after { content: ' ▼'; color: var(--accent-cyan); }
+        th.text-left, td.text-left { text-align: left; }
+
+        td {
+            padding: 9px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* First (symbol) column uses regular font */
+        td.text-left { font-family: var(--font); }
+
+        tr { transition: background-color 0.12s; }
+        tr:hover { background-color: var(--row-hover); cursor: pointer; }
+        tr:nth-child(even) { background-color: var(--row-alt); }
+        tr:nth-child(even):hover { background-color: var(--row-hover); }
+
+        /* Symbol cell */
+        .symbol-cell { display: flex; align-items: center; gap: 10px; }
+        .symbol-icon {
+            width: 28px; height: 28px;
+            border-radius: var(--radius-sm);
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            flex-shrink: 0;
+            font-family: var(--font);
+        }
+        .symbol-info { display: flex; flex-direction: column; text-align: left; }
+        .symbol-name {
+            font-weight: 600;
+            color: var(--accent-cyan);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font);
+        }
+        .company-name {
+            font-size: 10px;
+            color: var(--text-muted);
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: var(--font);
+        }
+        .cms-badge {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--accent-amber);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            border: 1px solid rgba(251, 191, 36, 0.12);
+            font-family: var(--font-mono);
+        }
+
+        /* RS Value Colors */
+        .positive { color: var(--accent-green); }
+        .negative { color: var(--accent-red); }
+
+        /* ─── Loading Spinner ─── */
+        .loader {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            z-index: 20;
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 2.5px solid rgba(255, 255, 255, 0.06);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        .spinner-text {
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* ─── Watchlist Button ─── */
+        .btn-add-wl {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: var(--radius-sm);
+            width: 26px; height: 26px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 0;
+            padding: 0;
+        }
+        .btn-add-wl:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(56, 189, 248, 0.06);
+        }
+
+        /* ─── Watchlist Dropdown ─── */
+        .watchlist-dropdown-menu {
+            position: absolute;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 6px 0;
+            z-index: 1000;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.03);
+            display: none;
+            min-width: 180px;
+            backdrop-filter: blur(16px);
+        }
+        .watchlist-dropdown-item {
+            padding: 8px 14px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.12s;
+        }
+        .watchlist-dropdown-item:hover {
+            background: rgba(56, 189, 248, 0.06);
+            color: var(--text-primary);
+        }
+
+        /* ─── Toast ─── */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent-green);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+            z-index: 2000;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            animation: slideIn 0.3s ease-out;
+            font-family: var(--font);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="app-nav">
+        <a href="/" class="brand">AMT</a>
+        <div class="nav-divider"></div>
+        <a href="/screener_ui" class="nav-link active">RS Screener</a>
+        <a href="/mtf_screener_ui" class="nav-link">MTF Screener</a>
+        <a href="/rs_ui" class="nav-link">RS Engine</a>
+        <a href="/india_sectors_ui" class="nav-link">India Sectors</a>
+        <div class="nav-spacer"></div>
+        <a href="/historical_ui" class="nav-link">⬇ Data Sync</a>
+        <div class="nav-divider"></div>
+        <a href="/" class="home-btn">⌂ Home</a>
+    </nav>
+
+    <header>
+        <input type="text" id="table-search" class="search-box" placeholder="🔍  Search symbol or name...">
+        <div class="header-spacer"></div>
+        <div class="control-group">
+            <label>Universe</label>
+            <select id="universe">
+                <option value="All">All Stocks</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Base Index</label>
+            <select id="index">
+                <option value="NSE_INDEX|Nifty 50">Nifty 50</option>
+                <option value="NSE_INDEX|Nifty Bank">Nifty Bank</option>
+                <option value="NSE_INDEX|Nifty 500">Nifty 500</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>MTF Filter</label>
+            <select id="mtf-filter">
+                <option value="All">All Stocks</option>
+                <option value="MTF">MTF Eligible Only</option>
+            </select>
+        </div>
+        <button id="scan-btn">Run Scan</button>
+     </header>
+
+     <div class="screener-container">
+        <div id="loader" class="loader">
+            <div class="spinner"></div>
+            <p class="spinner-text">Calculating Cross-Sectional RS...</p>
+        </div>
+
+        <table id="screener-table">
+            <thead>
+                <tr>
+                    <th class="text-left" data-sort="symbol">Symbol</th>
+                    <th class="text-left" data-sort="sector">Sector</th>
+                    <th data-sort="price">Price</th>
+                    <th data-sort="mcap_cr">Mcap (Cr)</th>
+                    <th data-sort="mtf_amt">MTF Book (Cr)</th>
+                    <th data-sort="mtf_pct_mcap">MTF % of Mcap</th>
+                    <th data-sort="cms">CMS Score</th>
+                    <th data-sort="rs_1w">1W Chg (5D)</th>
+                    <th data-sort="rs_1m">1M Chg (21D)</th>
+                    <th data-sort="rs_3m">3M Chg (63D)</th>
+                    <th data-sort="rs_6m">6M Chg (126D)</th>
+                    <th data-sort="rs_ytd">YTD Chg</th>
+                    <th data-sort="rs_1y">1Y Chg (252D)</th>
+                    <th style="width: 80px; text-align: center">Watchlist</th>
+                </tr>
+            </thead>
+            <tbody id="screener-body">
+                <!-- Rows will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Floating watchlist context dropdown -->
+    <div class="watchlist-dropdown-menu" id="watchlist-ctx-menu"></div>
+
+    <!-- Toast notifier -->
+    <div id="toast"></div>
+
+    <script src="/static/js/rs_screener.js?v=2.4"></script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTF Screener</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --nav-bg: #0d1117;
+            --text-color: #d1d4dc;
+            --text-muted: #787b86;
+            --border-color: #21262d;
+            --accent-green: #26a69a;
+            --accent-red: #ef5350;
+            --accent-blue: #2962ff;
+            --accent-yellow: #ff9800;
+            --row-hover: #1c2128;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font); background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        .app-nav { background: var(--nav-bg); border-bottom: 1px solid var(--border-color); padding: 0 20px; display: flex; align-items: center; height: 46px; gap: 4px; flex-shrink: 0; z-index: 100; }
+        .app-nav .brand { font-size: 15px; font-weight: 700; color: white; text-decoration: none; letter-spacing: -0.3px; margin-right: 16px; white-space: nowrap; }
+        .app-nav .brand span { color: var(--accent-blue); }
+        .nav-divider { width: 1px; height: 20px; background: var(--border-color); margin: 0 8px; }
+        .app-nav a.nav-link { font-size: 14px; font-weight: 500; color: var(--text-muted); text-decoration: none; padding: 5px 12px; border-radius: 6px; transition: all 0.15s; white-space: nowrap; }
+        .app-nav a.nav-link:hover { color: white; background: rgba(255,255,255,0.07); }
+        .app-nav a.nav-link.active { color: white; background: rgba(41,98,255,0.18); }
+        .app-nav .nav-spacer { flex: 1; }
+        .app-nav .home-btn { font-size: 13px; font-weight: 600; color: var(--text-muted); text-decoration: none; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-color); transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+        .app-nav .home-btn:hover { color: white; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+
+        header { background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
+        .search-box { background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 10px; border-radius: 5px; font-size: 13px; font-family: var(--font); width: 200px; }
+        .search-box:focus { border-color: var(--accent-blue); outline: none; }
+        .header-spacer { flex: 1; }
+
+        .mtf-summary-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 12px 20px 0 20px;
+            flex-shrink: 0;
+            background-color: var(--bg-color);
+        }
+        .mtf-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 14px 16px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .mtf-card-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .mtf-card-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            font-family: monospace;
+        }
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+
+        .screener-container { flex: 1; overflow: auto; padding-top: 12px; }
+
+        table { width: 100%; border-collapse: collapse; text-align: right; font-variant-numeric: tabular-nums; }
+        th { background-color: var(--bg-color); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 14px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; cursor: pointer; user-select: none; white-space: nowrap; }
+        th:hover { color: white; }
+        th.sort-asc::after { content: ' ▲'; font-size: 9px; }
+        th.sort-desc::after { content: ' ▼'; font-size: 9px; }
+        th.text-left, td.text-left { text-align: left; }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        tr:hover { background-color: var(--row-hover); cursor: pointer; }
+
+        .symbol-cell { display: flex; align-items: center; gap: 10px; }
+        .symbol-icon { width: 26px; height: 26px; border-radius: 6px; background: rgba(41,98,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent-blue); flex-shrink: 0; }
+        .symbol-info { display: flex; flex-direction: column; text-align: left; }
+        .symbol-name { font-weight: 600; color: var(--accent-blue); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .company-name { font-size: 11px; color: var(--text-muted); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .positive { color: var(--accent-green); }
+        .negative { color: var(--accent-red); }
+
+        .loader { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; flex-direction: column; align-items: center; z-index: 20; }
+        .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.08); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <nav class="app-nav">
+        <a href="/" class="brand">AMT <span>●</span></a>
+        <div class="nav-divider"></div>
+        <a href="/screener_ui" class="nav-link">RS Screener</a>
+        <a href="/mtf_screener_ui" class="nav-link active">MTF Screener</a>
+        <a href="/rs_ui" class="nav-link">RS Engine</a>
+        <a href="/india_sectors_ui" class="nav-link">India Sectors</a>
+        <div class="nav-spacer"></div>
+        <a href="/historical_ui" class="nav-link">⬇ Data Sync</a>
+        <div class="nav-divider"></div>
+        <a href="/" class="home-btn">⌂ Home</a>
+    </nav>
+
+    <header>
+        <input type="text" id="table-search" class="search-box" placeholder="🔍  Search symbol...">
+        <div class="header-spacer"></div>
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+            <label style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); font-weight: 600;">Universe</label>
+            <select id="universe" style="background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 10px; border-radius: 5px; font-size: 13px; font-family: var(--font); outline: none; cursor: pointer;">
+                <option value="All">All Stocks</option>
+            </select>
+        </div>
+    </header>
+
+
+
+    <div class="screener-container">
+        <div id="loader" class="loader">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: var(--text-muted);">Fetching Liquidity Data...</p>
+        </div>
+
+        <table id="screener-table">
+            <thead>
+                <tr>
+                    <th class="text-left">#</th>
+                    <th class="text-left" data-sort="symbol">Symbol</th>
+                    <th class="text-left" data-sort="sector">Sector</th>
+                    <th data-sort="price">Price</th>
+                    <th data-sort="mtf_amt_cr">MTF Book (Cr)</th>
+                    <th data-sort="mtf_pct_mcap">MTF % of Mcap</th>
+                    <th data-sort="mtf_net_1w_cr">1W Net Chg</th>
+                    <th data-sort="mtf_net_1m_cr">1M Net Chg</th>
+                    <th data-sort="mtf_net_3m_cr">3M Net Chg</th>
+                    <th data-sort="mtf_net_6m_cr">6M Net Chg</th>
+                    <th data-sort="mtf_1w_cr">1W Book</th>
+                    <th data-sort="mtf_1m_cr">1M Book</th>
+                    <th data-sort="mtf_3m_cr">3M Book</th>
+                    <th data-sort="mtf_6m_cr">6M Book</th>
+                </tr>
+            </thead>
+            <tbody id="screener-body">
+                <!-- Rows will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let fullData = [];
+        let universes = {};
+        let currentSort = { column: 'mtf_amt_cr', asc: false };
+
+        async function fetchUniverses() {
+            try {
+                const response = await fetch('/api/universes');
+                const res = await response.json();
+                if (res.status === 'success') {
+                    universes = res.data;
+                    const select = document.getElementById('universe');
+                    for (const name in universes) {
+                        if (universes[name].length > 0) {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            select.appendChild(option);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load universes", err);
+            }
+        }
+
+        async function fetchMtfSummary() {
+            try {
+                const res = await fetch('/api/rs/mtf/summary');
+                const json = await res.json();
+                if (json.status === 'success' && json.data.length > 0) {
+                    const latest = json.data[json.data.length - 1];
+                    document.getElementById('mtf-total-book').innerText = '₹' + latest.outstanding_crores.toLocaleString() + ' Cr';
+                    document.getElementById('mtf-fresh-exposure').innerText = '₹' + latest.added_crores.toLocaleString() + ' Cr';
+                    document.getElementById('mtf-liquidations').innerText = '₹' + latest.liquidated_crores.toLocaleString() + ' Cr';
+                }
+            } catch (e) {
+                console.error("Failed to load MTF summary", e);
+            }
+        }
+
+        async function fetchScreenerData() {
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const res = await fetch('/api/rs/mtf_screener_data');
+                const json = await res.json();
+                if (json.status === 'success') {
+                    fullData = json.data;
+                    sortData('mtf_amt_cr'); // Initial sort and render
+                }
+            } catch (e) {
+                console.error("Failed to fetch MTF Screener data", e);
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        function sortData(column) {
+            if (currentSort.column === column) {
+                currentSort.asc = !currentSort.asc;
+            } else {
+                currentSort.column = column;
+                currentSort.asc = false;
+            }
+
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.sort === column) {
+                    th.classList.add(currentSort.asc ? 'sort-asc' : 'sort-desc');
+                }
+            });
+
+            fullData.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+
+                if (valA === null) valA = -999999;
+                if (valB === null) valB = -999999;
+
+                if (typeof valA === 'string') {
+                    return currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+
+                return currentSort.asc ? valA - valB : valB - valA;
+            });
+
+            const query = document.getElementById('table-search').value.toLowerCase();
+            const filtered = fullData.filter(d => 
+                d.symbol.toLowerCase().includes(query) || 
+                (d.name && d.name.toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('screener-body');
+            tbody.innerHTML = '';
+            
+            const universeFilter = document.getElementById('universe').value;
+            let validSymbols = null;
+            if (universeFilter !== 'All' && universes[universeFilter]) {
+                validSymbols = new Set(universes[universeFilter]);
+            }
+
+            let rankIndex = 1;
+
+            data.forEach((row, i) => {
+                if (validSymbols && !validSymbols.has(row.symbol)) {
+                    return;
+                }
+                
+                const tr = document.createElement('tr');
+                tr.onclick = () => window.location.href = `/rs_ui?symbol=${row.symbol}`;
+
+                const net1wClass = row.mtf_net_1w_cr > 0 ? 'positive' : (row.mtf_net_1w_cr < 0 ? 'negative' : '');
+                const net1wText = (row.mtf_net_1w_cr > 0 ? '+' : '') + (row.mtf_net_1w_cr ? row.mtf_net_1w_cr.toFixed(2) : '0.00') + ' Cr';
+                
+                const net1mClass = row.mtf_net_1m_cr > 0 ? 'positive' : (row.mtf_net_1m_cr < 0 ? 'negative' : '');
+                const net1mText = (row.mtf_net_1m_cr > 0 ? '+' : '') + (row.mtf_net_1m_cr ? row.mtf_net_1m_cr.toFixed(2) : '0.00') + ' Cr';
+                
+                const net3mClass = row.mtf_net_3m_cr > 0 ? 'positive' : (row.mtf_net_3m_cr < 0 ? 'negative' : '');
+                const net3mText = (row.mtf_net_3m_cr > 0 ? '+' : '') + (row.mtf_net_3m_cr ? row.mtf_net_3m_cr.toFixed(2) : '0.00') + ' Cr';
+
+                const net6mClass = row.mtf_net_6m_cr > 0 ? 'positive' : (row.mtf_net_6m_cr < 0 ? 'negative' : '');
+                const net6mText = (row.mtf_net_6m_cr > 0 ? '+' : '') + (row.mtf_net_6m_cr ? row.mtf_net_6m_cr.toFixed(2) : '0.00') + ' Cr';
+
+                tr.innerHTML = `
+                    <td class="text-left" style="color: var(--text-muted); font-size: 11px;">${rankIndex}</td>
+                    <td class="text-left">
+                        <div class="symbol-cell">
+                            <div class="symbol-icon">${row.symbol.charAt(0)}</div>
+                            <div class="symbol-info">
+                                <div class="symbol-name">${row.symbol}</div>
+                                <div class="company-name">${row.name || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-left" style="font-size: 11px; color: var(--text-muted);">${row.sector}</td>
+                    <td>${row.price ? row.price.toFixed(2) : '—'}</td>
+                    <td style="color: white; font-weight: 600;">₹${row.mtf_amt_cr.toLocaleString()} Cr</td>
+                    <td style="color: var(--accent-blue); font-weight: 600;">${row.mtf_pct_mcap ? row.mtf_pct_mcap.toFixed(2) + '%' : '0.00%'}</td>
+                    <td class="${net1wClass}">${net1wText}</td>
+                    <td class="${net1mClass}">${net1mText}</td>
+                    <td class="${net3mClass}">${net3mText}</td>
+                    <td class="${net6mClass}">${net6mText}</td>
+                    <td style="color: var(--text-muted)">₹${row.mtf_1w_cr.toLocaleString()} Cr</td>
+                    <td style="color: var(--text-muted)">₹${row.mtf_1m_cr.toLocaleString()} Cr</td>
+                    <td style="color: var(--text-muted)">₹${row.mtf_3m_cr.toLocaleString()} Cr</td>
+                    <td style="color: var(--text-muted)">₹${row.mtf_6m_cr.toLocaleString()} Cr</td>
+                `;
+                tbody.appendChild(tr);
+                rankIndex++;
+            });
+        }
+
+        document.getElementById('table-search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = fullData.filter(d => 
+                d.symbol.toLowerCase().includes(query) || 
+                (d.name && d.name.toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        });
+
+        document.getElementById('universe').addEventListener('change', () => {
+            const query = document.getElementById('table-search').value.toLowerCase();
+            const filtered = fullData.filter(d => 
+                d.symbol.toLowerCase().includes(query) || 
+                (d.name && d.name.toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        });
+
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                sortData(th.dataset.sort);
+            });
+        });
+
+        // Init
+        fetchUniverses().then(() => {
+            fetchMtfSummary();
+            fetchScreenerData();
+        });
+    </script>
+</body>
+</html>

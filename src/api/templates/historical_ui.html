@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Sync Engine — AMT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0B0D11;
+            --surface: #141720;
+            --surface2: #1C2030;
+            --border: rgba(255,255,255,0.07);
+            --border2: rgba(255,255,255,0.12);
+            --text: #D1D4DC;
+            --muted: #6B7280;
+            --blue: #2962FF;
+            --green: #26A69A;
+            --red: #EF5350;
+            --font: 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+        /* ── App Nav ── */
+        .app-nav {
+            background: #0B0D11;
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            height: 46px;
+            gap: 4px;
+            flex-shrink: 0;
+            z-index: 200;
+        }
+        .app-nav .brand { font-size: 15px; font-weight: 800; color: white; text-decoration: none; letter-spacing: -0.5px; margin-right: 16px; white-space: nowrap; }
+        .app-nav .brand span { color: var(--blue); }
+        .nav-div { width: 1px; height: 22px; background: var(--border2); margin: 0 10px; }
+        .app-nav a.nl { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 6px; transition: all 0.15s; white-space: nowrap; }
+        .app-nav a.nl:hover { color: white; background: rgba(255,255,255,0.07); }
+        .app-nav a.nl.active { color: white; background: rgba(41,98,255,0.2); }
+        .nav-push { flex: 1; }
+        .app-nav .home-btn { font-size: 13px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border2); transition: all 0.15s; }
+        .app-nav .home-btn:hover { color: white; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+
+        /* ── Layout ── */
+        .container { max-width: 900px; margin: 40px auto; width: 100%; padding: 0 20px; }
+        .header { margin-bottom: 30px; }
+        .header h1 { font-size: 24px; font-weight: 800; color: white; margin-bottom: 8px; }
+        .header p { color: var(--muted); font-size: 14px; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .card-icon { font-size: 20px; }
+        .card-title { font-size: 16px; font-weight: 700; color: white; }
+        .card-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+
+        /* ── Forms & Inputs ── */
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        input, select, button { font-family: var(--font); }
+        input[type="date"], input[type="text"], select {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--blue); background: rgba(41,98,255,0.05); }
+
+        .btn {
+            padding: 9px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-primary:hover { background: #1E88E5; }
+        .btn-danger { background: rgba(239,83,80,0.15); color: var(--red); border: 1px solid rgba(239,83,80,0.3); }
+        .btn-danger:hover { background: rgba(239,83,80,0.25); }
+        .btn-outline { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); color: white; }
+
+        /* ── Progress Bar ── */
+        .progress-box { margin-top: 16px; display: none; }
+        .progress-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+        .progress-bar-fill { height: 100%; background: var(--blue); width: 0%; transition: width 0.3s; }
+        .progress-stats { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+        .progress-msg { font-size: 12px; color: white; margin-top: 4px; font-weight: 500; }
+        
+        .toast {
+            position: fixed; bottom: 20px; right: 20px;
+            background: var(--surface2); border: 1px solid var(--border);
+            padding: 12px 20px; border-radius: 8px;
+            font-size: 13px; font-weight: 500; color: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transform: translateY(100px); opacity: 0;
+            transition: all 0.3s; z-index: 1000;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <nav class="app-nav">
+        <a href="/" class="brand">AMT <span>●</span></a>
+        <div class="nav-div"></div>
+        <a href="/screener_ui" class="nl">RS Screener</a>
+        <a href="/rs_ui" class="nl">RS Engine</a>
+        <a href="/india_sectors_ui" class="nl">India Sectors</a>
+        <div class="nav-push"></div>
+        <a href="/historical_ui" class="nl active">⬇ Data Sync</a>
+        <div class="nav-div"></div>
+        <a href="/" class="home-btn">⌂ Home</a>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>Data Sync Engine</h1>
+            <p>Manage and synchronize local DuckDB historical databases via Upstox API and Yahoo Finance.</p>
+        </div>
+
+        <!-- 1. Mass Sync -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">⚡</div>
+                <div class="card-title">Automated Bulk Sync Pipeline</div>
+            </div>
+            <div class="card-desc">
+                Select a target universe to synchronize historical daily data. The engine automatically handles smart-resume, API rate limiting, and database upserts.
+            </div>
+            <div class="form-row">
+                <div class="input-group" style="width: 100%;">
+                    <label>Targets to Update</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; margin-top: 8px;">
+
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; font-size: 14px; cursor: pointer;">
+                            <input type="checkbox" class="sync-target-cb" value="indices" checked> Nifty Sector Indices (For RRG / Heatmap)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; font-size: 14px; cursor: pointer;">
+                            <input type="checkbox" class="sync-target-cb" value="equities" checked> All NSE Equities (For RS Screener)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; font-size: 14px; cursor: pointer;">
+                            <input type="checkbox" class="sync-target-cb" value="delivery" checked> NSE Delivery Data
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; font-size: 14px; cursor: pointer;">
+                            <input type="checkbox" class="sync-target-cb" value="mtf" checked> MTF Data (Net Add, Liquidated)
+                        </label>
+
+                    </div>
+                </div>
+                <div class="input-group" id="date-group-1">
+                    <label>From Date</label>
+                    <input type="date" id="bulk-from" value="2000-01-01">
+                </div>
+                <div class="input-group" id="date-group-2">
+                    <label>To Date</label>
+                    <input type="date" id="bulk-to" value="2026-05-30">
+                </div>
+                <div class="input-group" style="justify-content: flex-end;">
+                    <button class="btn btn-primary" onclick="startBulkSync()">Start Bulk Sync</button>
+                </div>
+                <div class="input-group" style="justify-content: flex-end;">
+                    <button class="btn btn-danger" onclick="cancelSync()" id="cancel-btn" style="display:none;">Stop</button>
+                </div>
+            </div>
+
+            <div class="progress-box" id="progress-container">
+                <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+                <div class="progress-stats">
+                    <span id="progress-pct">0%</span>
+                    <span id="progress-count">0 / 0</span>
+                </div>
+                <div class="progress-msg" id="progress-msg">Waiting to start...</div>
+            </div>
+        </div>
+
+        <!-- 3. Export -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">💾</div>
+                <div class="card-title">Database Export</div>
+            </div>
+            <div class="card-desc">Search and select multiple stocks or indices. Export their OHLC data and MTF data (Net Add, Liquidated, Overall Outstanding) to a multi-sheet Excel file.</div>
+            <div class="form-row">
+                <div class="input-group" style="flex: 1; min-width: 250px; position: relative;">
+                    <label>Search Instruments</label>
+                    <input type="text" id="export-search" placeholder="Type symbol to search and select..." autocomplete="off">
+                    <div id="search-results" style="position: absolute; top: 100%; left: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; max-height: 200px; overflow-y: auto; width: 100%; display: none; z-index: 10;"></div>
+                </div>
+                <div class="input-group" style="justify-content: flex-end; padding-top: 18px;">
+                    <button class="btn btn-primary" onclick="exportExcel()">Export to Excel</button>
+                </div>
+            </div>
+            <div id="selected-instruments" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                <!-- Selected badges will go here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let pollInterval = null;
+
+
+
+        function showToast(msg, isError=false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.borderLeft = `4px solid ${isError ? 'var(--red)' : 'var(--green)'}`;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 4000);
+        }
+
+        async function startBulkSync() {
+            const fromDate = document.getElementById('bulk-from').value;
+            const toDate = document.getElementById('bulk-to').value;
+            const checkboxes = document.querySelectorAll('.sync-target-cb:checked');
+            const targets = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (targets.length === 0) {
+                showToast("Please select at least one target to update.", true);
+                return;
+            }
+
+            const payload = { targets: targets };
+            
+            try {
+                const res = await fetch("/api/historical/sync_all", { 
+                    method: "POST", 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload) 
+                });
+                const data = await res.json();
+                
+                if (data.status === "success") {
+                    showToast(data.message);
+                    document.getElementById('progress-container').style.display = 'block';
+                    document.getElementById('cancel-btn').style.display = 'inline-flex';
+                    connectWebSocket();
+                } else {
+                    showToast(data.message || "Error starting sync", true);
+                }
+            } catch (err) {
+                showToast("Request failed: " + err, true);
+            }
+        }
+
+        async function cancelSync() {
+            try {
+                await fetch("/api/historical/cancel_sync", { method: "POST" });
+                showToast("Cancellation requested...");
+                document.getElementById('cancel-btn').style.display = 'none';
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        let ws = null;
+
+        function connectWebSocket() {
+            if (ws) ws.close();
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/api/historical/ws/progress`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                const p = data;
+                const pct = p.total > 0 ? ((p.completed / p.total) * 100).toFixed(1) : 0;
+                
+                document.getElementById('progress-fill').style.width = `${pct}%`;
+                document.getElementById('progress-pct').textContent = `${pct}%`;
+                document.getElementById('progress-count').textContent = `${p.completed} / ${p.total}`;
+                
+                let msg = "";
+                if (p.completed === p.total && p.total > 0 && !p.is_syncing) {
+                    msg = "Complete!";
+                    ws.close();
+                } else if (p.current_symbol) {
+                    msg = `Syncing: ${p.current_symbol}`;
+                } else {
+                    msg = "Preparing sync...";
+                }
+                document.getElementById('progress-msg').textContent = msg;
+            };
+            
+            ws.onerror = (err) => {
+                console.error("WebSocket error", err);
+            };
+        }
+
+        let selectedExportSymbols = [];
+        const searchInput = document.getElementById('export-search');
+        const searchResults = document.getElementById('search-results');
+        const selectedContainer = document.getElementById('selected-instruments');
+
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            if (query.length < 2) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/equity/search?query=${query}&search_type=symbol`);
+                    const data = await res.json();
+                    if (data.status === 'success' && data.data.length > 0) {
+                        searchResults.innerHTML = '';
+                        data.data.forEach(item => {
+                            const div = document.createElement('div');
+                            div.style.padding = '8px 12px';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid var(--border)';
+                            div.style.fontSize = '12px';
+                            div.textContent = `${item.trading_symbol || item.name} (${item.instrument_key})`;
+                            div.onclick = () => {
+                                addSelectedSymbol(item.instrument_key, item.trading_symbol || item.name);
+                                searchInput.value = '';
+                                searchResults.style.display = 'none';
+                            };
+                            searchResults.appendChild(div);
+                        });
+                        searchResults.style.display = 'block';
+                    } else {
+                        searchResults.style.display = 'none';
+                    }
+                } catch(err) {
+                    console.error(err);
+                }
+            }, 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target !== searchInput && e.target !== searchResults && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        function addSelectedSymbol(key, label) {
+            if (selectedExportSymbols.find(s => s.key === key)) return;
+            selectedExportSymbols.push({key, label});
+            renderSelected();
+        }
+
+        function removeSelectedSymbol(key) {
+            selectedExportSymbols = selectedExportSymbols.filter(s => s.key !== key);
+            renderSelected();
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = '';
+            selectedExportSymbols.forEach(s => {
+                const badge = document.createElement('div');
+                badge.style.background = 'rgba(41,98,255,0.2)';
+                badge.style.border = '1px solid var(--blue)';
+                badge.style.color = 'white';
+                badge.style.padding = '4px 8px';
+                badge.style.borderRadius = '4px';
+                badge.style.fontSize = '11px';
+                badge.style.display = 'flex';
+                badge.style.alignItems = 'center';
+                badge.style.gap = '6px';
+                
+                const closeBtn = document.createElement('span');
+                closeBtn.textContent = '✕';
+                closeBtn.style.cursor = 'pointer';
+                closeBtn.style.color = 'var(--muted)';
+                closeBtn.onclick = () => removeSelectedSymbol(s.key);
+                
+                badge.appendChild(document.createTextNode(s.label));
+                badge.appendChild(closeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        async function exportExcel() {
+            if (selectedExportSymbols.length === 0) {
+                return showToast("Please select at least one instrument.", true);
+            }
+            
+            showToast("Generating Excel file...");
+            const keys = selectedExportSymbols.map(s => s.key);
+            
+            try {
+                const res = await fetch("/api/historical/export_excel", { 
+                    method: "POST", 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ instrument_keys: keys }) 
+                });
+                
+                if (!res.ok) {
+                    let errText = await res.text();
+                    try { errText = JSON.parse(errText).detail || errText; } catch(e){}
+                    showToast("Export failed: " + errText, true);
+                    return;
+                }
+                
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Export_${new Date().toISOString().slice(0,10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                
+                showToast("Export complete.");
+            } catch(e) {
+                showToast(e.toString(), true);
+            }
+        }
+
+        // On load check if already syncing
+        fetch("/api/historical/progress").then(r=>r.json()).then(d => {
+            if(d.is_syncing) {
+                document.getElementById('progress-container').style.display = 'block';
+                document.getElementById('cancel-btn').style.display = 'inline-flex';
+                connectWebSocket();
+            }
+        });
+    </script>
+</body>
+</html>

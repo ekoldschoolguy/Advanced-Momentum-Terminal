@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Momentum Terminal</title>
+    <meta name="description" content="Quantitative Analytics & Trading Intelligence for Indian Markets — RS Screener, MTF Analysis, and Sector Rotation tools.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #06090f;
+            --bg-elevated: #0c1018;
+            --surface: rgba(255, 255, 255, 0.025);
+            --surface-hover: rgba(255, 255, 255, 0.055);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(255, 255, 255, 0.14);
+            --text-primary: #E8ECF4;
+            --text-secondary: #7A8394;
+            --text-muted: #4B5567;
+
+            /* Accent palette */
+            --accent-cyan: #38BDF8;
+            --accent-teal: #2DD4BF;
+            --accent-violet: #A78BFA;
+            --accent-amber: #F59E0B;
+            --accent-rose: #FB7185;
+            --accent-blue: #3B82F6;
+
+            /* Tag Colors */
+            --tag-core-bg: rgba(45, 212, 191, 0.08);
+            --tag-core-border: rgba(45, 212, 191, 0.18);
+            --tag-core-text: #2DD4BF;
+            --tag-india-bg: rgba(245, 158, 11, 0.08);
+            --tag-india-border: rgba(245, 158, 11, 0.18);
+            --tag-india-text: #FBBF24;
+            --tag-data-bg: rgba(122, 131, 148, 0.08);
+            --tag-data-border: rgba(122, 131, 148, 0.18);
+            --tag-data-text: #9CA3AF;
+
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            height: 100%;
+            font-family: var(--font);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ─── Animated Background Mesh ─── */
+        .bg-mesh {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .bg-mesh::before,
+        .bg-mesh::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: floatMesh 20s ease-in-out infinite alternate;
+        }
+        .bg-mesh::before {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.07), transparent 70%);
+            top: -10%; left: 20%;
+        }
+        .bg-mesh::after {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.06), transparent 70%);
+            bottom: -5%; right: 10%;
+            animation-delay: -10s;
+        }
+        @keyframes floatMesh {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(40px, -30px) scale(1.1); }
+            100% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* ─── Noise Texture Overlay ─── */
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+        }
+
+        /* ─── Shell & Structure ─── */
+        .shell {
+            position: relative;
+            z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Top Navigation Bar ─── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            height: 56px;
+            background: rgba(6, 9, 15, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .topbar-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar-brand {
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .topbar-divider {
+            width: 1px;
+            height: 18px;
+            background: var(--border);
+        }
+
+        .topbar-sub {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: -0.1px;
+        }
+
+        .topbar-push { flex: 1; }
+
+        .topbar-status-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ─── Status Pills ─── */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(8px);
+            letter-spacing: 0.1px;
+        }
+        .status-pill.ok { color: var(--accent-teal); border-color: rgba(45, 212, 191, 0.15); }
+        .status-pill.warn { color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.15); }
+        .status-pill.err { color: var(--accent-rose); border-color: rgba(251, 113, 133, 0.15); }
+
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+            animation: pulseDot 2s ease-in-out infinite;
+        }
+        .dot.no-pulse { animation: none; box-shadow: none; opacity: 0.5; }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(0.8); }
+        }
+
+        /* ─── Auth Buttons ─── */
+        .auth-btn {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 18px;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: var(--font);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 0.1px;
+        }
+        .auth-btn.login {
+            background: linear-gradient(135deg, #0EA5E9, #3B82F6);
+            color: white;
+            box-shadow: 0 2px 12px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .auth-btn.login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        .auth-btn.logout {
+            background: rgba(251, 113, 133, 0.08);
+            color: #FCA5A5;
+            border: 1px solid rgba(251, 113, 133, 0.15);
+        }
+        .auth-btn.logout:hover {
+            background: rgba(251, 113, 133, 0.14);
+            transform: translateY(-1px);
+        }
+
+        /* ─── Content Area ─── */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 32px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        .content-inner {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Custom Scrollbar */
+        .content::-webkit-scrollbar { width: 6px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        .content::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+        /* ─── Hero Section ─── */
+        .hero {
+            text-align: center;
+            margin-bottom: 48px;
+            opacity: 0;
+            transform: translateY(-16px);
+            animation: fadeDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 99px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(167, 139, 250, 0.08));
+            border: 1px solid rgba(255,255,255,0.06);
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        .hero-badge::before {
+            content: '';
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 6px var(--accent-cyan);
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            background: linear-gradient(to right, #ffffff 30%, var(--text-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ─── Card Grid ─── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+            width: 100%;
+        }
+
+        .card {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Stagger */
+        .card:nth-child(1) { animation-delay: 0.12s; }
+        .card:nth-child(2) { animation-delay: 0.18s; }
+        .card:nth-child(3) { animation-delay: 0.24s; }
+        .card:nth-child(4) { animation-delay: 0.30s; }
+        .card:nth-child(5) { animation-delay: 0.36s; }
+
+        /* Top accent line */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 24px; right: 24px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+            transition: background 0.35s;
+        }
+
+        .card:hover {
+            background: var(--surface-hover);
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+        }
+        .card:hover::before {
+            background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.2), transparent);
+        }
+
+        .card.locked {
+            opacity: 0.3;
+            pointer-events: none;
+            filter: grayscale(0.8);
+        }
+
+        /* Card Header */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .card-icon {
+            width: 42px; height: 42px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card:hover .card-icon { transform: scale(1.08); }
+
+        /* Icon theme variants */
+        .icon-core {
+            background: linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(45, 212, 191, 0.04));
+            border: 1px solid rgba(45, 212, 191, 0.12);
+        }
+        .icon-india {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.04));
+            border: 1px solid rgba(245, 158, 11, 0.12);
+        }
+        .icon-data {
+            background: linear-gradient(135deg, rgba(122, 131, 148, 0.12), rgba(122, 131, 148, 0.04));
+            border: 1px solid rgba(122, 131, 148, 0.12);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #F3F4F6;
+            letter-spacing: -0.3px;
+        }
+
+        .card-tag {
+            margin-left: auto;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+        .tag-core { background: var(--tag-core-bg); color: var(--tag-core-text); border: 1px solid var(--tag-core-border); }
+        .tag-india { background: var(--tag-india-bg); color: var(--tag-india-text); border: 1px solid var(--tag-india-border); }
+        .tag-data { background: var(--tag-data-bg); color: var(--tag-data-text); border: 1px solid var(--tag-data-border); }
+
+        /* Card Body */
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            flex-grow: 1;
+        }
+
+        /* Card Footer */
+        .card-foot {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 18px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            transition: color 0.2s;
+        }
+        .card-foot svg {
+            width: 13px; height: 13px;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card:hover .card-foot { color: #7DD3FC; }
+        .card:hover .card-foot svg { transform: translateX(4px); }
+
+        /* ─── Footer ─── */
+        .footer {
+            flex-shrink: 0;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+        }
+        .footer-text { font-size: 11px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.2px; }
+        .footer-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); opacity: 0.5; }
+
+        /* ─── Keyframes ─── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 1024px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 720px) {
+            .grid { grid-template-columns: 1fr; }
+            .topbar { padding: 0 16px; gap: 8px; }
+            .topbar-sub { display: none; }
+            .content { padding: 20px 16px; }
+            .hero { margin-bottom: 32px; }
+        }
+        @media (max-width: 480px) {
+            .topbar-status-group { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="noise-overlay"></div>
+
+    <div class="shell">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="topbar-brand-group">
+                <span class="topbar-brand">AMT</span>
+                <span class="topbar-divider"></span>
+                <span class="topbar-sub">Advanced Momentum Terminal</span>
+            </div>
+            <div class="topbar-push"></div>
+            <div class="topbar-status-group">
+                {auth_status}
+                {eq_status}
+            </div>
+            {auth_action}
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="content-inner">
+                <div class="hero">
+                    <div class="hero-badge">Version 2.0</div>
+                    <h1>Advanced Momentum Terminal</h1>
+                    <p>Quantitative Analytics &amp; Trading Intelligence for Indian Markets</p>
+                </div>
+
+                <div class="grid">
+                    <a href="/screener_ui" class="card {locked_class}" id="card-screener">
+                        <div class="card-header">
+                            <span class="card-icon icon-core">📊</span>
+                            <span class="card-title">RS Screener</span>
+                            <span class="card-tag tag-core">Core</span>
+                        </div>
+                        <div class="card-desc">Cross-sectional scanner identifying outperforming &amp; underperforming stocks by Relative Strength.</div>
+                        <div class="card-foot">
+                            Open Screener
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </div>
+                    </a>
+
+                    <a href="/mtf_screener_ui" class="card {locked_class}" id="card-mtf">
+                        <div class="card-header">
+                            <span class="card-icon icon-core">⚠️</span>
+                            <span class="card-title">MTF Screener</span>
+                            <span class="card-tag tag-core">Core</span>
+                        </div>
+                        <div class="card-desc">Identify high-risk stocks by tracking Margin Trading Facility (MTF) leverage and liquidity constraints.</div>
+                        <div class="card-foot">
+                            Open MTF Screener
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </div>
+                    </a>
+
+                    <a href="/rs_ui" class="card {locked_class}" id="card-rs-engine">
+                        <div class="card-header">
+                            <span class="card-icon icon-core">📈</span>
+                            <span class="card-title">RS Engine</span>
+                            <span class="card-tag tag-core">Core</span>
+                        </div>
+                        <div class="card-desc">Single-stock RS analysis vs index with synchronized TradingView-style candlestick &amp; RS charts.</div>
+                        <div class="card-foot">
+                            Open Engine
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </div>
+                    </a>
+
+                    <a href="/india_sectors_ui" class="card {locked_class}" id="card-sectors">
+                        <div class="card-header">
+                            <span class="card-icon icon-india">🇮🇳</span>
+                            <span class="card-title">India Sectors &amp; ETFs</span>
+                            <span class="card-tag tag-india">India</span>
+                        </div>
+                        <div class="card-desc">Nifty Sectoral Heatmap, Relative Rotation Graph (RRG), and interactive ETF Screener.</div>
+                        <div class="card-foot">
+                            Open Dashboard
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </div>
+                    </a>
+
+                    <a href="/historical_ui" class="card {locked_class}" id="card-sync">
+                        <div class="card-header">
+                            <span class="card-icon icon-data">💾</span>
+                            <span class="card-title">Data Sync Engine</span>
+                            <span class="card-tag tag-data">Data</span>
+                        </div>
+                        <div class="card-desc">Bulk historical data pipeline for NSE equities &amp; indices via Upstox API into local DuckDB.</div>
+                        <div class="card-foot">
+                            Open Sync
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span class="footer-text">AMT v2.0</span>
+            <span class="footer-dot"></span>
+            <span class="footer-text">FastAPI · DuckDB · Polars · Upstox · yfinance</span>
+            <span class="footer-dot"></span>
+            <span class="footer-text">JdK RS-Ratio Methodology</span>
+        </div>
+    </div>
+</body>
+</html>
